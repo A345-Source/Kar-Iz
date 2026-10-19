@@ -1,0 +1,39 @@
+# KarİZ — Proje Bağımlılıkları
+# Kurulum: pip install -r requirements.txt
+
+# Google Earth Engine
+earthengine-api>=0.1.370
+
+# GEE için Python harita kütüphanesi
+geemap>=0.34.0
+
+# Veri analizi
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Görselleştirme
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Makine öğrenmesi
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+
+# Web çerçevesi
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# İnteraktif harita
+folium>=0.14.0
+
+# HTTP istekleri (NASA POWER API için)
+requests>=2.31.0
+
+# Jupyter notebook
+jupyter>=1.0.0
+ipykernel>=6.25.0
+
+# Diğer araçlar
+joblib>=1.3.0
+scipy>=1.11.0

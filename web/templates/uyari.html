@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% block title %}KarİZ — Kuraklık Erken Uyarı{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero-warn">
+    <div class="container">
+        <div class="page-hero-content">
+            <div class="page-badge page-badge-warn">🌵 Kuraklık Modülü</div>
+            <h1 class="page-title">Kuraklık Erken Uyarı Sistemi</h1>
+            <p class="page-subtitle">
+                SPI (Standardized Precipitation Index) tabanlı havza bazlı
+                kuraklık tespiti ve erken uyarı sistemi
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <!-- SPI Açıklama Bandı -->
+        <div class="spi-aciklama-bant" id="spiAciklamaBant">
+            <div class="spi-bant-item" style="background: linear-gradient(135deg, #0000FF22, #0000FF11)">
+                <span class="spi-bant-val" style="color:#6495ED">SPI &gt; +2.0</span>
+                <span class="spi-bant-etiket">💧 Aşırı Nemli</span>
+            </div>
+            <div class="spi-bant-item">
+                <span class="spi-bant-val" style="color:#90EE90">-1 ile +1</span>
+                <span class="spi-bant-etiket">✅ Normal</span>
+            </div>
+            <div class="spi-bant-item">
+                <span class="spi-bant-val" style="color:#FFD700">SPI &lt; -1.0</span>
+                <span class="spi-bant-etiket">⚠️ Hafif Kuraklık</span>
+            </div>
+            <div class="spi-bant-item">
+                <span class="spi-bant-val" style="color:#FFA500">SPI &lt; -1.5</span>
+                <span class="spi-bant-etiket">🔶 Orta Kuraklık</span>
+            </div>
+            <div class="spi-bant-item" style="background: linear-gradient(135deg, #FF000022, #FF000011)">
+                <span class="spi-bant-val" style="color:#FF4500">SPI &lt; -2.0</span>
+                <span class="spi-bant-etiket">🚨 Şiddetli Kuraklık</span>
+            </div>
+        </div>
+
+        <!-- Havza Seçici -->
+        <div class="havza-secici-row" id="havzaSeciciRow">
+            <label class="control-label">🏞️ Havza Seçin:</label>
+            <div class="havza-secici-buttons" id="havzaSeciciButtons">
+                {% for kod, bilgi in havzalar.items() %}
+                <button class="btn-havza {% if kod == 'Kizilirmak' %}active{% endif %}"
+                        data-kod="{{ kod }}" id="hvz-btn-{{ kod }}">
+                    {{ bilgi.isim.split(' ')[0] }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Ana İçerik -->
+        <div class="uyari-layout">
+            <!-- Sol: Gösterge Paneli -->
+            <div class="gosterge-panel">
+                <!-- Gauge Göstergesi -->
+                <div class="gauge-kart" id="gaugeKart">
+                    <h3 id="gaugeHavzaIsim">Kızılırmak Havzası</h3>
+                    <div class="gauge-container" id="gaugeContainer">
+                        <canvas id="gaugeCanvas" width="280" height="160"></canvas>
+                        <div class="gauge-deger-overlay" id="gaugeDegerOverlay">
+                            <div class="gauge-spi" id="gaugeSpi">—</div>
+                            <div class="gauge-label">SPI-3</div>
+                        </div>
+                    </div>
+                    <div class="gauge-seviye" id="gaugeSeviye">Yükleniyor...</div>
+                    <div class="gauge-icon" id="gaugeIcon">⏳</div>
+                </div>
+
+                <!-- SPI Detay Tablosu -->
+                <div class="spi-detay-kart" id="spiDetayKart">
+                    <h4>📊 SPI Değerleri</h4>
+                    <table class="spi-tablo">
+                        <thead>
+                            <tr>
+                                <th>Zaman Ölçeği</th>
+                                <th>SPI Değeri</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>SPI-3 (Kısa Vadeli)</td>
+                                <td id="spi3Deger">—</td>
+                                <td id="spi3Durum">—</td>
+                            </tr>
+                            <tr>
+                                <td>SPI-6 (Orta Vadeli)</td>
+                                <td id="spi6Deger">—</td>
+                                <td id="spi6Durum">—</td>
+                            </tr>
+                            <tr>
+                                <td>SPI-12 (Uzun Vadeli)</td>
+                                <td id="spi12Deger">—</td>
+                                <td id="spi12Durum">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Son Meteoroloji -->
+                <div class="meteor-kart" id="meteorKart">
+                    <h4>🌡️ Son Ölçümler</h4>
+                    <div class="meteor-grid">
+                        <div class="meteor-item">
+                            <div class="meteor-icon">🌡️</div>
+                            <div class="meteor-deger" id="sonSicaklik">—</div>
+                            <div class="meteor-label">Sıcaklık (°C)</div>
+                        </div>
+                        <div class="meteor-item">
+                            <div class="meteor-icon">🌧️</div>
+                            <div class="meteor-deger" id="sonYagis">—</div>
+                            <div class="meteor-label">Yağış (mm)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ: SPI Zaman Serisi + Tüm Havzalar -->
+            <div class="uyari-grafik-panel">
+                <!-- SPI Zaman Serisi Grafiği -->
+                <div class="chart-card" id="spiGrafikKart">
+                    <div class="chart-header">
+                        <div class="chart-title-group">
+                            <h3 id="spiGrafikBaslik">📈 Kızılırmak — SPI Zaman Serisi</h3>
+                            <span class="chart-subtitle">2015–2026 aylık SPI değerleri</span>
+                        </div>
+                        <div class="chart-controls">
+                            <button class="btn-chip active" data-spi="SPI_3" id="btn-spi3">SPI-3</button>
+                            <button class="btn-chip" data-spi="SPI_6" id="btn-spi6">SPI-6</button>
+                            <button class="btn-chip" data-spi="SPI_12" id="btn-spi12">SPI-12</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" style="height:300px">
+                        <canvas id="spiGrafik"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tüm Havzalar Karşılaştırma -->
+                <div class="chart-card" id="tumHavzalarKart">
+                    <div class="chart-header">
+                        <div class="chart-title-group">
+                            <h3>🗺️ Tüm Havzalar — Güncel SPI-3</h3>
+                            <span class="chart-subtitle">Havza bazında kuraklık karşılaştırması</span>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" style="height:280px">
+                        <canvas id="tumHavzalarGrafik"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let secilenHavza = 'Kizilirmak';
+let spiChart = null;
+let tumHavzalarChart = null;
+let aktifSpi = 'SPI_3';
+let tumKuraklikDurumu = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Tüm havza kuraklık durumunu yükle
+    fetch('/api/kuraklik')
+        .then(r => r.json())
+        .then(durum => {
+            tumKuraklikDurumu = durum;
+            tumHavzalarGrafigiCiz(durum);
+            havzaGuncelle(secilenHavza);
+        });
+
+    // Havza butonları
+    document.querySelectorAll('.btn-havza').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.btn-havza').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            secilenHavza = this.dataset.kod;
+            havzaGuncelle(secilenHavza);
+        });
+    });
+
+    // SPI tipi butonları
+    document.querySelectorAll('[data-spi]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-spi]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            aktifSpi = this.dataset.spi;
+            spiGrafikGuncelle();
+        });
+    });
+});
+
+let spiVerisi = null;
+
+function havzaGuncelle(havza) {
+    const isim = tumKuraklikDurumu[havza]?.isim || havza;
+    document.getElementById('gaugeHavzaIsim').textContent = isim;
+    document.getElementById('spiGrafikBaslik').textContent = `📈 ${isim} — SPI Zaman Serisi`;
+
+    // Gauge güncelle
+    if (tumKuraklikDurumu[havza]) {
+        const d = tumKuraklikDurumu[havza];
+        gaugeGuncelle(d.SPI_3, d.etiket, d.renk, d.icon);
+        document.getElementById('spi3Deger').textContent = d.SPI_3.toFixed(3);
+        document.getElementById('spi6Deger').textContent = d.SPI_6.toFixed(3);
+        document.getElementById('spi12Deger').textContent = d.SPI_12.toFixed(3);
+        document.getElementById('spi3Durum').textContent = d.etiket;
+        document.getElementById('sonSicaklik').textContent = d.sicaklik_son;
+        document.getElementById('sonYagis').textContent = d.yagis_son;
+        
+        const spi3Renk = spiRenkBul(d.SPI_3);
+        const spi6Renk = spiRenkBul(d.SPI_6);
+        const spi12Renk = spiRenkBul(d.SPI_12);
+        document.getElementById('spi3Deger').style.color = spi3Renk;
+        document.getElementById('spi6Deger').style.color = spi6Renk;
+        document.getElementById('spi12Deger').style.color = spi12Renk;
+        document.getElementById('spi6Durum').textContent = spiEtiketBul(d.SPI_6);
+        document.getElementById('spi12Durum').textContent = spiEtiketBul(d.SPI_12);
+    }
+
+    // SPI zaman serisi
+    fetch(`/api/kuraklik/havza/${havza}`)
+        .then(r => r.json())
+        .then(veri => {
+            spiVerisi = veri;
+            spiGrafikGuncelle();
+        });
+}
+
+function spiGrafikGuncelle() {
+    if (!spiVerisi) return;
+    const ctx = document.getElementById('spiGrafik').getContext('2d');
+    if (spiChart) spiChart.destroy();
+
+    const spiData = spiVerisi[aktifSpi];
+    
+    spiChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: spiVerisi.tarihler,
+            datasets: [
+                {
+                    label: aktifSpi,
+                    data: spiData,
+                    borderColor: 'white',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Nemli',
+                    data: spiData.map(v => v >= 0 ? v : 0),
+                    backgroundColor: 'rgba(65,105,225,0.3)',
+                    borderColor: 'transparent',
+                    fill: 'origin',
+                    pointRadius: 0,
+                    tension: 0
+                },
+                {
+                    label: 'Kurak',
+                    data: spiData.map(v => v < 0 ? v : 0),
+                    backgroundColor: 'rgba(255,69,0,0.3)',
+                    borderColor: 'transparent',
+                    fill: 'origin',
+                    pointRadius: 0,
+                    tension: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1E2D3D',
+                    titleColor: '#00D4FF',
+                    bodyColor: '#ccc',
+                    borderColor: '#00D4FF',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => ctx.datasetIndex === 0 ? 
+                            `${aktifSpi}: ${ctx.parsed.y.toFixed(3)}` : null,
+                        filter: item => item.datasetIndex === 0
+                    }
+                },
+                annotation: {
+                    annotations: {
+                        sifirCizgi: { type: 'line', y: 0, borderColor: 'rgba(255,255,255,0.5)', borderWidth: 1 },
+                        hafifKurak: { type: 'line', y: -1.0, borderColor: '#FFD700', borderWidth: 1, borderDash: [4,4] },
+                        ortaKurak: { type: 'line', y: -1.5, borderColor: '#FFA500', borderWidth: 1, borderDash: [4,4] },
+                        siddetliKurak: { type: 'line', y: -2.0, borderColor: '#FF4500', borderWidth: 1, borderDash: [4,4] }
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#888', autoSkip: true, maxTicksLimit: 14 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { min: -3, max: 3, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+
+function tumHavzalarGrafigiCiz(durum) {
+    if (!durum) return;
+    const ctx = document.getElementById('tumHavzalarGrafik').getContext('2d');
+    if (tumHavzalarChart) tumHavzalarChart.destroy();
+
+    const havzaAdlari = Object.values(durum).map(d => d.isim.split(' ')[0]);
+    const spi3Degerleri = Object.values(durum).map(d => d.SPI_3);
+    const renkler = spi3Degerleri.map(v => {
+        if (v >= 1) return 'rgba(65,105,225,0.7)';
+        if (v >= 0) return 'rgba(144,238,144,0.7)';
+        if (v >= -1) return 'rgba(144,238,144,0.5)';
+        if (v >= -1.5) return 'rgba(255,215,0,0.7)';
+        if (v >= -2) return 'rgba(255,165,0,0.7)';
+        return 'rgba(255,69,0,0.7)';
+    });
+
+    tumHavzalarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: havzaAdlari,
+            datasets: [{
+                label: 'SPI-3',
+                data: spi3Degerleri,
+                backgroundColor: renkler,
+                borderRadius: 5,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1E2D3D', titleColor: '#00D4FF', bodyColor: '#ccc',
+                    callbacks: { label: ctx => `SPI-3: ${ctx.parsed.x.toFixed(3)}` }
+                }
+            },
+            scales: {
+                x: { min: -3, max: 3, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' },
+                     title: { display: true, text: 'SPI-3 Değeri', color: '#888' } },
+                y: { ticks: { color: '#ccc', font: { size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+// Gauge çizimi (Canvas API)
+function gaugeGuncelle(spiDeger, etiket, renk, icon) {
+    const canvas = document.getElementById('gaugeCanvas');
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height * 0.85;
+    const r = 110;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Arka plan yayı
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 18;
+    ctx.stroke();
+
+    // SPI değeri -3 ile +3 arasında, açıya çevir
+    const normalize = Math.max(-3, Math.min(3, spiDeger));
+    const oran = (normalize + 3) / 6;  // 0-1 arasına normalize et
+    const endAcisi = Math.PI + oran * Math.PI;
+
+    // Renkli yay
+    const grad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+    grad.addColorStop(0, '#FF0000');
+    grad.addColorStop(0.5, '#FFD700');
+    grad.addColorStop(1, '#4169E1');
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI, endAcisi);
+    ctx.strokeStyle = renk;
+    ctx.lineWidth = 18;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // İbre
+    const ibreAcisi = Math.PI + oran * Math.PI;
+    const ibreX = cx + (r - 5) * Math.cos(ibreAcisi);
+    const ibreY = cy + (r - 5) * Math.sin(ibreAcisi);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ibreX, ibreY);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Merkez nokta
+    ctx.beginPath();
+    ctx.arc(cx, cy, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+
+    // Etiketler: -3 ... 0 ... +3
+    ctx.font = '10px Inter';
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'center';
+    ['-3', '-2', '-1', '0', '+1', '+2', '+3'].forEach((label, i) => {
+        const a = Math.PI + (i / 6) * Math.PI;
+        const lx = cx + (r + 18) * Math.cos(a);
+        const ly = cy + (r + 18) * Math.sin(a);
+        ctx.fillText(label, lx, ly);
+    });
+
+    // SPI değeri ve seviye
+    document.getElementById('gaugeSpi').textContent = (spiDeger > 0 ? '+' : '') + spiDeger.toFixed(2);
+    document.getElementById('gaugeSpi').style.color = renk;
+    document.getElementById('gaugeSeviye').textContent = etiket;
+    document.getElementById('gaugeSeviye').style.color = renk;
+    document.getElementById('gaugeIcon').textContent = icon;
+}
+
+function spiRenkBul(spi) {
+    if (spi >= 1) return '#4169E1';
+    if (spi >= 0) return '#90EE90';
+    if (spi >= -1) return '#90EE90';
+    if (spi >= -1.5) return '#FFD700';
+    if (spi >= -2) return '#FFA500';
+    return '#FF4500';
+}
+
+function spiEtiketBul(spi) {
+    if (spi >= 2) return '💧 Aşırı Nemli';
+    if (spi >= 1) return '🌧️ Çok Nemli';
+    if (spi >= 0.5) return '☁️ Hafif Nemli';
+    if (spi >= -0.5) return '✅ Normal';
+    if (spi >= -1) return '⚠️ Hafif Kuraklık';
+    if (spi >= -1.5) return '🔶 Orta Kuraklık';
+    if (spi >= -2) return '🔴 Şiddetli Kuraklık';
+    return '🚨 Aşırı Kuraklık';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+{% block title %}KarİZ — Ana Sayfa{% endblock %}
+
+{% block content %}
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  HERO SEKSİYONU                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+    <div class="hero-bg-animation"></div>
+    <div class="hero-content">
+        <div class="hero-badge">🛰️ Sentinel-2 · XGBoost · Flask</div>
+        <h1 class="hero-title">
+            <span class="hero-title-snow">❄️ KarİZ</span>
+        </h1>
+        <p class="hero-subtitle">
+            Uydu Tabanlı Kar Örtüsü İzleme<br>
+            ve Kuraklık Erken Uyarı Sistemi
+        </p>
+        <p class="hero-desc">
+            Türkiye'nin <strong>8 baraj havzasında</strong> 2015–2026 yılları arasında
+            Sentinel-2 uydu görüntüleri ve makine öğrenmesi ile kar örtüsü değişimini
+            izliyor, su akışını tahmin ediyor.
+        </p>
+        <div class="hero-buttons">
+            <a href="/harita" class="btn btn-primary" id="hero-harita-btn">
+                🗺️ Kar Haritasını Gör
+            </a>
+            <a href="/tahmin" class="btn btn-secondary" id="hero-tahmin-btn">
+                🤖 Tahmin Yap
+            </a>
+        </div>
+
+        <!-- Hızlı istatistikler -->
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-val" id="stat-goruntu">
+                    {{ "{:,}".format(istatistikler.goruntu_sayisi) }}
+                </div>
+                <div class="hero-stat-label">Uydu Görüntüsü</div>
+            </div>
+            <div class="hero-stat-div"></div>
+            <div class="hero-stat">
+                <div class="hero-stat-val">{{ istatistikler.havza_sayisi }}</div>
+                <div class="hero-stat-label">Baraj Havzası</div>
+            </div>
+            <div class="hero-stat-div"></div>
+            <div class="hero-stat">
+                <div class="hero-stat-val">{{ istatistikler.yil_sayisi }}</div>
+                <div class="hero-stat-label">Yıllık Veri</div>
+            </div>
+            <div class="hero-stat-div"></div>
+            <div class="hero-stat">
+                <div class="hero-stat-val">{{ "%.2f"|format(istatistikler.model_r2) }}</div>
+                <div class="hero-stat-label">Model R²</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Animasyonlu kar ikon -->
+    <div class="hero-visual">
+        <div class="globe-container">
+            <div class="globe-ring ring-1"></div>
+            <div class="globe-ring ring-2"></div>
+            <div class="globe-ring ring-3"></div>
+            <div class="globe-core">🌍</div>
+            <div class="satellite sat-1">🛰️</div>
+            <div class="satellite sat-2">📡</div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  ÖZET KARTLARİ                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="section" id="overview">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Sistem Özeti</h2>
+            <p class="section-subtitle">Gerçek zamanlı verilerle çalışan dört ana modül</p>
+        </div>
+
+        <div class="cards-grid">
+            <!-- Kart 1: Kar Haritası -->
+            <a href="/harita" class="card card-hover" id="card-harita">
+                <div class="card-icon-big">🗺️</div>
+                <h3 class="card-title">Kar Haritası</h3>
+                <p class="card-text">
+                    Sentinel-2 uydu görüntüleri ve NDSI algoritması ile
+                    Türkiye'nin anlık kar örtüsü haritası.
+                </p>
+                <div class="card-meta">
+                    <span class="tag">NDSI</span>
+                    <span class="tag">Sentinel-2</span>
+                    <span class="tag">10m Çözünürlük</span>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <!-- Kart 2: Zaman Serisi -->
+            <a href="/analiz" class="card card-hover" id="card-analiz">
+                <div class="card-icon-big">📈</div>
+                <h3 class="card-title">Zaman Serisi Analizi</h3>
+                <p class="card-text">
+                    2015–2026 yılları arasında Türkiye kar örtüsü değişimi
+                    ve küresel ısınma trend analizi.
+                </p>
+                <div class="card-stat">
+                    <span class="stat-number" id="trend-deger">
+                        {% if istatistikler.trend < 0 %}
+                            ↓ {{ "{:,}".format(istatistikler.trend|abs) }} km²/yıl
+                        {% else %}
+                            ↑ {{ "{:,}".format(istatistikler.trend) }} km²/yıl
+                        {% endif %}
+                    </span>
+                    <span class="stat-label">Yıllık Trend</span>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <!-- Kart 3: ML Modeli -->
+            <a href="/tahmin" class="card card-hover" id="card-ml">
+                <div class="card-icon-big">🤖</div>
+                <h3 class="card-title">Su Akışı Tahmini</h3>
+                <p class="card-text">
+                    XGBoost ve Random Forest modeli ile kar + meteoroloji
+                    verilerinden baraj su akışı tahmini.
+                </p>
+                <div class="card-stat">
+                    <span class="stat-number">R² {{ "%.2f"|format(istatistikler.model_r2) }}</span>
+                    <span class="stat-label">Model Doğruluğu</span>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <!-- Kart 4: Kuraklık -->
+            <a href="/uyari" class="card card-hover card-warning" id="card-uyari">
+                <div class="card-icon-big">🌵</div>
+                <h3 class="card-title">Kuraklık Uyarı Sistemi</h3>
+                <p class="card-text">
+                    SPI (Standardized Precipitation Index) tabanlı kuraklık
+                    tespiti ve erken uyarı mekanizması.
+                </p>
+                <div class="card-meta">
+                    <span class="tag tag-warn">SPI-3</span>
+                    <span class="tag tag-warn">SPI-6</span>
+                    <span class="tag tag-warn">SPI-12</span>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  CANLI KAR VERİSİ                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="section section-dark" id="canli-veri">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Kar Örtüsü Trendi</h2>
+            <p class="section-subtitle">2015–2026 Türkiye aylık kar alanı değişimi</p>
+        </div>
+
+        <div class="chart-card" id="ana-grafik-kart">
+            <div class="chart-header">
+                <div class="chart-title-group">
+                    <h3>📊 Aylık Kar Alanı (km²)</h3>
+                    <span class="chart-subtitle">Sentinel-2 NDSI verisi</span>
+                </div>
+                <div class="chart-controls">
+                    <button class="btn-chip active" data-range="all" id="btn-all">Tümü</button>
+                    <button class="btn-chip" data-range="5" id="btn-5y">5 Yıl</button>
+                    <button class="btn-chip" data-range="3" id="btn-3y">3 Yıl</button>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="anaGrafik"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  HAVZA DURUMU                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="section" id="havzalar">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Baraj Havzaları</h2>
+            <p class="section-subtitle">Türkiye'nin 8 temel su havzasında kuraklık durumu</p>
+        </div>
+
+        <div class="havza-grid" id="havzaGrid">
+            <!-- JavaScript ile doldurulacak -->
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Kuraklık verileri yükleniyor...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  PROJE METODOLOJI                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="section section-dark" id="metod">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Metodoloji</h2>
+            <p class="section-subtitle">Uydu verilerinden erken uyarıya — uçtan uca pipeline</p>
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-item" id="step-1">
+                <div class="timeline-icon">🛰️</div>
+                <div class="timeline-content">
+                    <h3>Sentinel-2 Uydu Görüntüleri</h3>
+                    <p>ESA'nın Sentinel-2 uydusundan 10m çözünürlüklü multispektral
+                    görüntüler Google Earth Engine üzerinden işlenir. QA60 bandıyla
+                    bulut temizleme yapılır, ardından medyan kompozit oluşturulur.</p>
+                    <div class="timeline-tags">
+                        <span class="tag">GEE API</span>
+                        <span class="tag">S2_SR_HARMONIZED</span>
+                        <span class="tag">Bulut Maskeleme</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-item" id="step-2">
+                <div class="timeline-icon">❄️</div>
+                <div class="timeline-content">
+                    <h3>NDSI Kar Tespiti</h3>
+                    <p>Normalized Difference Snow Index formülü uygulanır:
+                    <code>NDSI = (B3 - B11) / (B3 + B11)</code>.
+                    NDSI > 0.4 olan pikseller kar olarak sınıflandırılır.
+                    Türkiye'nin toplam kar alanı km² cinsinden hesaplanır.</p>
+                    <div class="timeline-tags">
+                        <span class="tag">NDSI > 0.4</span>
+                        <span class="tag">B3 (Yeşil)</span>
+                        <span class="tag">B11 (SWIR)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-item" id="step-3">
+                <div class="timeline-icon">🌡️</div>
+                <div class="timeline-content">
+                    <h3>Meteorolojik Veri Entegrasyonu</h3>
+                    <p>NASA POWER API'den her havza için aylık sıcaklık (T2M),
+                    yağış (PRECTOTCORR) ve bağıl nem (RH2M) verileri çekilir.
+                    Kar verisiyle birleştirilerek model girdisi oluşturulur.</p>
+                    <div class="timeline-tags">
+                        <span class="tag">NASA POWER</span>
+                        <span class="tag">T2M · PRECTOT · RH2M</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-item" id="step-4">
+                <div class="timeline-icon">🤖</div>
+                <div class="timeline-content">
+                    <h3>XGBoost Makine Öğrenmesi Modeli</h3>
+                    <p>Lag öznitelikleri (1-2 aylık gecikme) ve etkileşim terimleri
+                    eklenerek 9 öznitelikten oluşan bir model eğitilir. XGBoost ve
+                    Random Forest karşılaştırılır, en iyi model seçilir.</p>
+                    <div class="timeline-tags">
+                        <span class="tag">XGBoost</span>
+                        <span class="tag">Random Forest</span>
+                        <span class="tag">R² > 0.70</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-item" id="step-5">
+                <div class="timeline-icon">🚨</div>
+                <div class="timeline-content">
+                    <h3>Kuraklık Erken Uyarı</h3>
+                    <p>SPI (Standardized Precipitation Index) hesaplanır.
+                    SPI-3 (kısa vadeli), SPI-6 (orta vadeli) ve SPI-12
+                    (uzun vadeli) seviyelerinde havza bazlı kuraklık tespiti
+                    ve erken uyarı bildirimi yapılır.</p>
+                    <div class="timeline-tags">
+                        <span class="tag">SPI-3 · SPI-6 · SPI-12</span>
+                        <span class="tag">McKee et al. 1993</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Ana sayfa grafik ve havza verisi yükleme
+document.addEventListener('DOMContentLoaded', function() {
+    // Zaman serisi grafiği
+    let tumVeri = [];
+    
+    fetch('/api/zaman-serisi')
+        .then(r => r.json())
+        .then(veri => {
+            tumVeri = veri;
+            anaGrafiginiCiz(veri);
+        })
+        .catch(e => console.error('Zaman serisi yüklenemedi:', e));
+    
+    // Havza kuraklık durumu
+    fetch('/api/kuraklik')
+        .then(r => r.json())
+        .then(durum => {
+            havzaGridiniDoldur(durum);
+        })
+        .catch(e => {
+            document.getElementById('havzaGrid').innerHTML = 
+                '<p style="color:#888;text-align:center">Veri yüklenemedi</p>';
+        });
+    
+    // Zaman aralığı butonları
+    document.querySelectorAll('.btn-chip').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.btn-chip').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const range = this.dataset.range;
+            if (range === 'all' || !tumVeri.tarihler) {
+                anaGrafiginiCiz(tumVeri);
+            } else {
+                const yilFark = parseInt(range);
+                const simdi = new Date();
+                const baslangic = new Date(simdi.getFullYear() - yilFark, simdi.getMonth(), 1);
+                
+                const filtreli = {
+                    tarihler: [],
+                    kar_alani: []
+                };
+                tumVeri.tarihler.forEach((t, i) => {
+                    if (new Date(t) >= baslangic) {
+                        filtreli.tarihler.push(t);
+                        filtreli.kar_alani.push(tumVeri.kar_alani[i]);
+                    }
+                });
+                anaGrafiginiCiz(filtreli);
+            }
+        });
+    });
+});
+
+let anaGrafik = null;
+
+function anaGrafiginiCiz(veri) {
+    if (!veri.tarihler || veri.tarihler.length === 0) return;
+    
+    const ctx = document.getElementById('anaGrafik').getContext('2d');
+    if (anaGrafik) anaGrafik.destroy();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+    gradient.addColorStop(0, 'rgba(0, 212, 255, 0.4)');
+    gradient.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
+    
+    anaGrafik = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: veri.tarihler,
+            datasets: [{
+                label: 'Kar Alanı (km²)',
+                data: veri.kar_alani,
+                borderColor: '#00D4FF',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                pointRadius: veri.tarihler.length > 60 ? 0 : 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: '#00D4FF',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1E2D3D',
+                    titleColor: '#00D4FF',
+                    bodyColor: '#ccc',
+                    borderColor: '#00D4FF',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => `Kar: ${ctx.parsed.y.toLocaleString('tr-TR')} km²`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#888', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                y: {
+                    ticks: { 
+                        color: '#888',
+                        callback: v => (v/1000).toFixed(0) + 'k'
+                    },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                }
+            }
+        }
+    });
+}
+
+function havzaGridiniDoldur(durum) {
+    const grid = document.getElementById('havzaGrid');
+    
+    if (!durum || Object.keys(durum).length === 0) {
+        grid.innerHTML = '<p style="color:#888;text-align:center">Veri yükleniyor...</p>';
+        return;
+    }
+    
+    const html = Object.entries(durum).map(([kod, bilgi]) => {
+        const spiBar = Math.min(100, Math.max(0, ((bilgi.SPI_3 + 3) / 6) * 100));
+        const spiRenk = bilgi.SPI_3 >= 0 ? '#4ECDC4' : (bilgi.SPI_3 > -1.5 ? '#FFD700' : '#FF6B6B');
+        
+        return `
+        <div class="havza-kart" id="havza-${kod}">
+            <div class="havza-header">
+                <span class="havza-icon">${bilgi.icon}</span>
+                <div>
+                    <div class="havza-isim">${bilgi.isim}</div>
+                    <div class="havza-tarih">${bilgi.yil}/${String(bilgi.ay).padStart(2,'0')}</div>
+                </div>
+            </div>
+            <div class="havza-seviye" style="color:${bilgi.renk}">${bilgi.etiket}</div>
+            <div class="spi-bar-container">
+                <div class="spi-bar-bg">
+                    <div class="spi-bar-fill" style="width:${spiBar}%;background:${spiRenk}"></div>
+                </div>
+                <div class="spi-deger">SPI-3: <strong>${bilgi.SPI_3 > 0 ? '+' : ''}${bilgi.SPI_3.toFixed(2)}</strong></div>
+            </div>
+            <div class="havza-meta">
+                <span>🌡️ ${bilgi.sicaklik_son}°C</span>
+                <span>🌧️ ${bilgi.yagis_son} mm</span>
+            </div>
+        </div>`;
+    }).join('');
+    
+    grid.innerHTML = html;
+}
+</script>
+{% endblock %}

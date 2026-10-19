@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}KarİZ — İnteraktif Kar Haritası{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <div class="page-hero-content">
+            <div class="page-badge">🗺️ Harita Modülü</div>
+            <h1 class="page-title">Türkiye Kar Örtüsü Haritası</h1>
+            <p class="page-subtitle">
+                Sentinel-2 uydu görüntülerinden NDSI algoritmasıyla elde edilen
+                gerçek zamanlı kar örtüsü dağılımı
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <!-- Kontrol Paneli -->
+        <div class="map-controls-panel" id="mapControlsPanel">
+            <div class="control-group">
+                <label class="control-label">📅 Yıl Seçin</label>
+                <div class="year-buttons" id="yearButtons">
+                    {% for yil in range(2015, 2027) %}
+                    <button class="btn-year {% if yil == 2024 %}active{% endif %}"
+                            data-year="{{ yil }}" id="btn-yil-{{ yil }}">{{ yil }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">🗓️ Ay Seçin</label>
+                <div class="month-buttons" id="monthButtons">
+                    {% set ay_isimleri = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'] %}
+                    {% for i in range(1, 13) %}
+                    <button class="btn-month {% if i == 2 %}active{% endif %}"
+                            data-month="{{ i }}" id="btn-ay-{{ i }}">{{ ay_isimleri[i-1] }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Harita ve Bilgi Paneli -->
+        <div class="map-layout">
+            <!-- Sol: Harita -->
+            <div class="map-card" id="mapCard">
+                <div class="map-header">
+                    <h3 id="mapTitle">❄️ Şubat 2024 — Türkiye Kar Örtüsü</h3>
+                    <div class="map-status" id="mapStatus">
+                        <span class="status-dot active"></span>
+                        Hazır
+                    </div>
+                </div>
+                <!-- Leaflet Harita -->
+                <div id="leafletMap" class="leaflet-map-container"></div>
+                <!-- Lejant -->
+                <div class="map-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#1E90FF"></div>
+                        <span>Kar Örtüsü (NDSI &gt; 0.4)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:rgba(255,68,68,0.5);border:1px solid #FF4444"></div>
+                        <span>Türkiye Sınırı</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ: İstatistik Paneli -->
+            <div class="map-info-panel">
+                <div class="info-card" id="karBilgisi">
+                    <div class="info-icon">📊</div>
+                    <h4>Kar Alanı İstatistikleri</h4>
+                    <div class="info-stat-big">
+                        <span id="karAlaniDeger" class="stat-big">—</span>
+                        <span class="stat-unit">km²</span>
+                    </div>
+                    <div class="info-meta">
+                        <div>
+                            <span class="meta-label">Türkiye Oranı</span>
+                            <span class="meta-value" id="karOrani">—</span>
+                        </div>
+                        <div>
+                            <span class="meta-label">Sezon Ortalaması</span>
+                            <span class="meta-value" id="sezonOrt">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card" id="yillikKarsilastirma">
+                    <h4>📈 Yıllık Karşılaştırma</h4>
+                    <div class="chart-wrapper-small">
+                        <canvas id="yillikGrafik"></canvas>
+                    </div>
+                </div>
+
+                <div class="info-card" id="ndsiAciklama">
+                    <h4>ℹ️ NDSI Nedir?</h4>
+                    <p class="info-text">
+                        <strong>Normalized Difference Snow Index</strong>, uydu görüntülerinden
+                        kar örtüsünü tespit etmek için kullanılan bir spektral indeks:
+                    </p>
+                    <div class="formula-box">
+                        NDSI = (B3 - B11) / (B3 + B11)
+                    </div>
+                    <p class="info-text">
+                        <strong>B3</strong>: Yeşil bant (560nm) — kar yüksek yansıma<br>
+                        <strong>B11</strong>: SWIR bant (1610nm) — kar düşük yansıma<br>
+                        <strong>Eşik</strong>: NDSI &gt; 0.4 → Kar
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aylık Kar Değişimi (Seçilen Yıl) -->
+        <div class="chart-card" style="margin-top:2rem" id="aylikKarCard">
+            <div class="chart-header">
+                <div class="chart-title-group">
+                    <h3 id="aylikGrafikBaslik">📅 2024 — Aylık Kar Alanı Değişimi</h3>
+                    <span class="chart-subtitle">Seçili yılın 12 aylık profili</span>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="aylikGrafik"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TURKIYE_MERKEZ = [39.0, 35.0];
+const TURKIYE_ZOOM = 5.5;
+let secilenYil = 2024;
+let secilenAy = 2;
+let leafletMap = null;
+let yillikChart = null;
+let aylikChart = null;
+let karZamanSerisi = [];
+
+// Haritayı başlat
+document.addEventListener('DOMContentLoaded', function() {
+    leafletMap = L.map('leafletMap').setView(TURKIYE_MERKEZ, TURKIYE_ZOOM);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap | KarİZ TÜBİTAK 2204-A',
+        opacity: 0.7
+    }).addTo(leafletMap);
+
+    // Türkiye GeoJSON sınırı ekle
+    fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+        .then(r => r.json())
+        .then(data => {
+            const turkiye = data.features.find(f => f.properties.ISO_A3 === 'TUR');
+            if (turkiye) {
+                L.geoJSON(turkiye, {
+                    style: {
+                        color: '#FF4444',
+                        weight: 2,
+                        fillOpacity: 0,
+                        opacity: 0.8
+                    }
+                }).addTo(leafletMap);
+            }
+        })
+        .catch(() => {/* Sınır yüklenemezse devam et */});
+
+    // Zaman serisi verisi
+    fetch('/api/zaman-serisi')
+        .then(r => r.json())
+        .then(veri => {
+            karZamanSerisi = veri;
+            haritaGuncelle();
+            yillikGrafiginiCiz();
+            aylikGrafiginiCiz(secilenYil);
+        });
+
+    // Yıl butonları
+    document.querySelectorAll('.btn-year').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.btn-year').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            secilenYil = parseInt(this.dataset.year);
+            haritaGuncelle();
+            aylikGrafiginiCiz(secilenYil);
+        });
+    });
+
+    // Ay butonları
+    document.querySelectorAll('.btn-month').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.btn-month').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            secilenAy = parseInt(this.dataset.month);
+            haritaGuncelle();
+        });
+    });
+});
+
+function haritaGuncelle() {
+    const baslik = document.getElementById('mapTitle');
+    const ayAdlari = ['','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+                      'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    baslik.textContent = `❄️ ${ayAdlari[secilenAy]} ${secilenYil} — Türkiye Kar Örtüsü`;
+
+    // Seçilen ay/yıl verisini bul
+    if (karZamanSerisi.tarihler) {
+        const hedefTarih = `${secilenYil}-${String(secilenAy).padStart(2,'0')}`;
+        const idx = karZamanSerisi.tarihler.findIndex(t => t === hedefTarih);
+        
+        if (idx !== -1) {
+            const alan = karZamanSerisi.kar_alani[idx];
+            document.getElementById('karAlaniDeger').textContent = alan.toLocaleString('tr-TR');
+            document.getElementById('karOrani').textContent = `%${(alan/783562*100).toFixed(1)}`;
+            
+            // Sezon ortalaması
+            const kisAylari = [1,2,3,12];
+            const kisVeri = karZamanSerisi.tarihler
+                .map((t, i) => ({t, v: karZamanSerisi.kar_alani[i]}))
+                .filter(({t}) => kisAylari.includes(parseInt(t.split('-')[1])));
+            const kisOrt = kisVeri.reduce((s,x) => s+x.v, 0) / (kisVeri.length || 1);
+            document.getElementById('sezonOrt').textContent = `${(kisOrt/1000).toFixed(0)}k km²`;
+        }
+    }
+
+    // Haritada animasyonlu yüklenme efekti
+    document.getElementById('mapStatus').innerHTML = 
+        '<span class="status-dot loading"></span> Yükleniyor...';
+    setTimeout(() => {
+        document.getElementById('mapStatus').innerHTML = 
+            '<span class="status-dot active"></span> Hazır';
+    }, 800);
+}
+
+function yillikGrafiginiCiz() {
+    if (!karZamanSerisi.yillik_ort) return;
+    const ctx = document.getElementById('yillikGrafik').getContext('2d');
+    if (yillikChart) yillikChart.destroy();
+    
+    yillikChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: karZamanSerisi.yillik_yillar,
+            datasets: [{
+                label: 'Yıllık Ort.',
+                data: karZamanSerisi.yillik_ort,
+                backgroundColor: karZamanSerisi.yillik_yillar.map(y => 
+                    y === secilenYil ? '#00D4FF' : 'rgba(0,212,255,0.3)'),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString('tr-TR')} km²` }}},
+            scales: {
+                x: { ticks: { color: '#888', font: { size: 10 } }, grid: { display: false } },
+                y: { ticks: { color: '#888', callback: v => (v/1000).toFixed(0)+'k' }, 
+                     grid: { color: 'rgba(255,255,255,0.05)' }}
+            }
+        }
+    });
+}
+
+function aylikGrafiginiCiz(yil) {
+    document.getElementById('aylikGrafikBaslik').textContent = 
+        `📅 ${yil} — Aylık Kar Alanı Değişimi`;
+    
+    if (!karZamanSerisi.tarihler) return;
+    const ayAdlari = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    
+    const yilVeri = Array(12).fill(0);
+    karZamanSerisi.tarihler.forEach((t, i) => {
+        const [y, m] = t.split('-').map(Number);
+        if (y === yil) yilVeri[m-1] = karZamanSerisi.kar_alani[i];
+    });
+    
+    const ctx = document.getElementById('aylikGrafik').getContext('2d');
+    if (aylikChart) aylikChart.destroy();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+    gradient.addColorStop(0, 'rgba(0, 212, 255, 0.5)');
+    gradient.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
+    
+    aylikChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ayAdlari,
+            datasets: [{
+                label: `${yil} Kar Alanı`,
+                data: yilVeri,
+                backgroundColor: yilVeri.map((v,i) => i === secilenAy-1 ? '#00D4FF' : 'rgba(0,212,255,0.35)'),
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1E2D3D',
+                    titleColor: '#00D4FF',
+                    bodyColor: '#ccc',
+                    borderColor: '#00D4FF',
+                    borderWidth: 1,
+                    callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString('tr-TR')} km²` }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color: '#888', callback: v => (v/1000).toFixed(0)+'k' },
+                     grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

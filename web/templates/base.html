@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="KarİZ - Uydu Tabanlı Kar Örtüsü İzleme ve Kuraklık Erken Uyarı Sistemi. TÜBİTAK 2204-A projesi.">
+    <title>{% block title %}KarİZ — Kar Örtüsü İzleme Sistemi{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Leaflet.js (harita) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Ana CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <!-- Arka plan parçacıkları -->
+    <div class="bg-particles" id="bgParticles"></div>
+
+    <!-- Navigasyon Çubuğu -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <!-- Logo -->
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">❄️</div>
+                <div class="logo-text">
+                    <span class="logo-main">KarİZ</span>
+                    <span class="logo-sub">TÜBİTAK 2204-A</span>
+                </div>
+            </a>
+
+            <!-- Navigasyon Linkleri -->
+            <ul class="nav-links" id="navLinks">
+                <li>
+                    <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" id="nav-anasayfa">
+                        <span class="nav-icon">🏠</span>
+                        <span>Ana Sayfa</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/harita" class="nav-link {% if request.path == '/harita' %}active{% endif %}" id="nav-harita">
+                        <span class="nav-icon">🗺️</span>
+                        <span>Kar Haritası</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/analiz" class="nav-link {% if request.path == '/analiz' %}active{% endif %}" id="nav-analiz">
+                        <span class="nav-icon">📊</span>
+                        <span>Analiz</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/tahmin" class="nav-link {% if request.path == '/tahmin' %}active{% endif %}" id="nav-tahmin">
+                        <span class="nav-icon">🤖</span>
+                        <span>Tahmin</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/uyari" class="nav-link {% if request.path == '/uyari' %}active{% endif %}" id="nav-uyari">
+                        <span class="nav-icon">⚠️</span>
+                        <span>Kuraklık</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Mobil menü butonu -->
+            <button class="hamburger" id="hamburger" aria-label="Menü">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Ana İçerik -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-logo">❄️ KarİZ</div>
+                    <p>Uydu Tabanlı Uzaktan Algılama ve Yapay Zekâ Destekli Kar Örtüsü İzleme Sistemi</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Sayfalar</h4>
+                    <a href="/">Ana Sayfa</a>
+                    <a href="/harita">Kar Haritası</a>
+                    <a href="/analiz">Analiz</a>
+                    <a href="/tahmin">Tahmin</a>
+                    <a href="/uyari">Kuraklık Uyarısı</a>
+                </div>
+                <div class="footer-veri">
+                    <h4>Veri Kaynakları</h4>
+                    <a href="https://sentinel.esa.int/" target="_blank">ESA Sentinel-2</a>
+                    <a href="https://power.larc.nasa.gov/" target="_blank">NASA POWER</a>
+                    <a href="https://earthengine.google.com/" target="_blank">Google Earth Engine</a>
+                    <a href="https://www.fao.org/" target="_blank">FAO GAUL</a>
+                </div>
+                <div class="footer-proje">
+                    <h4>Proje Bilgisi</h4>
+                    <p>TÜBİTAK 2204-A Yazılım Kategorisi</p>
+                    <p>Proje ID: kariz-510916</p>
+                    <p>10. Sınıf Lise Ekibi</p>
+                    <p>© 2025 KarİZ</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Ana JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

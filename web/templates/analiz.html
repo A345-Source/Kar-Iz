@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block title %}KarİZ — Zaman Serisi Analizi{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <div class="page-hero-content">
+            <div class="page-badge">📊 Analiz Modülü</div>
+            <h1 class="page-title">Zaman Serisi Analizi</h1>
+            <p class="page-subtitle">2015–2026 Türkiye Kar Örtüsü Değişimi ve Trend Analizi</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <!-- İstatistik Kartları -->
+        <div class="analiz-stats-row" id="analizIstatistikler">
+            <div class="analiz-stat-kart" id="statKartOrtalama">
+                <div class="analiz-stat-icon">❄️</div>
+                <div class="analiz-stat-val" id="ortalamaKar">—</div>
+                <div class="analiz-stat-label">Ort. Yıllık Kar Alanı (km²)</div>
+            </div>
+            <div class="analiz-stat-kart" id="statKartMax">
+                <div class="analiz-stat-icon">⬆️</div>
+                <div class="analiz-stat-val" id="maxKar">—</div>
+                <div class="analiz-stat-label">En Yüksek Aylık Kar (km²)</div>
+            </div>
+            <div class="analiz-stat-kart" id="statKartTrend">
+                <div class="analiz-stat-icon">📉</div>
+                <div class="analiz-stat-val" id="trendDeger">—</div>
+                <div class="analiz-stat-label">Yıllık Değişim Trendi</div>
+            </div>
+            <div class="analiz-stat-kart" id="statKartKis">
+                <div class="analiz-stat-icon">🌨️</div>
+                <div class="analiz-stat-val" id="kisOrtalama">—</div>
+                <div class="analiz-stat-label">Kış Sezonu Ortalaması (km²)</div>
+            </div>
+        </div>
+
+        <!-- Ana Trend Grafiği -->
+        <div class="chart-card" id="trendGrafikKart">
+            <div class="chart-header">
+                <div class="chart-title-group">
+                    <h3>📈 2015–2026 Kar Örtüsü Trendi</h3>
+                    <span class="chart-subtitle">Aylık değerler ve uzun dönem trend çizgisi</span>
+                </div>
+                <div class="chart-controls">
+                    <button class="btn-chip active" data-grafik="trend" id="btn-trend">Trend</button>
+                    <button class="btn-chip" data-grafik="yillik" id="btn-yillik-c">Yıllık</button>
+                    <button class="btn-chip" data-grafik="mevsimsel" id="btn-mevsimsel">Mevsimsel</button>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height:380px">
+                <canvas id="trendGrafik"></canvas>
+            </div>
+        </div>
+
+        <!-- İki Kolonlu Grafikler -->
+        <div class="two-col-charts">
+            <!-- Yıllık Kış Ortalamaları -->
+            <div class="chart-card" id="kisGrafikKart">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3>❄️ Yıllık Kış Ortalaması</h3>
+                        <span class="chart-subtitle">Oca-Şub-Mar ayları (km²)</span>
+                    </div>
+                </div>
+                <div class="chart-wrapper" style="height:280px">
+                    <canvas id="kisGrafik"></canvas>
+                </div>
+            </div>
+
+            <!-- Mevsimsel Profil -->
+            <div class="chart-card" id="mevsimGrafikKart">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3>📅 Mevsimsel Profil</h3>
+                        <span class="chart-subtitle">2015–2026 aylık ortalamaları</span>
+                    </div>
+                </div>
+                <div class="chart-wrapper" style="height:280px">
+                    <canvas id="mevsimGrafik"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend Analizi Özeti -->
+        <div class="trend-ozeti-kart" id="trendOzetiKart">
+            <div class="trend-ozeti-baslik">
+                <h3>📋 İstatistiksel Trend Analizi</h3>
+                <span class="badge-bilimsel">Doğrusal Regresyon</span>
+            </div>
+            <div class="trend-ozeti-icerik">
+                <div class="trend-ozeti-col">
+                    <h4>Yöntem</h4>
+                    <p>
+                        Zaman serisi verisi üzerine doğrusal regresyon uygulanarak
+                        kar alanındaki sistematik değişim hesaplanmıştır. Regresyon denklemi:
+                    </p>
+                    <div class="formula-box" id="regrasyonDenklem">
+                        KarAlanı = a × Yıl + b
+                    </div>
+                </div>
+                <div class="trend-ozeti-col">
+                    <h4>Sonuçlar</h4>
+                    <table class="trend-tablo">
+                        <tr>
+                            <td>Eğim (a)</td>
+                            <td id="trend-egim">— km²/yıl</td>
+                        </tr>
+                        <tr>
+                            <td>R² Değeri</td>
+                            <td id="trend-r2">—</td>
+                        </tr>
+                        <tr>
+                            <td>11 Yıllık Değişim</td>
+                            <td id="trend-toplam">—</td>
+                        </tr>
+                        <tr>
+                            <td>Yorum</td>
+                            <td id="trend-yorum">—</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let tumVeri = null;
+let trendChart = null;
+let kisChart = null;
+let mevsimChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/zaman-serisi')
+        .then(r => r.json())
+        .then(veri => {
+            tumVeri = veri;
+            istatistikleriHesapla(veri);
+            trendGrafikCiz(veri);
+            kisGrafikCiz(veri);
+            mevsimGrafikCiz(veri);
+            trendAnalizYap(veri);
+        });
+
+    // Grafik geçiş butonları
+    document.querySelectorAll('[data-grafik]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-grafik]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            if (tumVeri) {
+                const tip = this.dataset.grafik;
+                if (tip === 'trend') trendGrafikCiz(tumVeri);
+                else if (tip === 'yillik') yillikGrafikCiz(tumVeri);
+                else if (tip === 'mevsimsel') mevsimliGrafikCiz(tumVeri);
+            }
+        });
+    });
+});
+
+function istatistikleriHesapla(veri) {
+    if (!veri.kar_alani) return;
+    const ortalama = veri.kar_alani.reduce((s,v) => s+v, 0) / veri.kar_alani.length;
+    const maksimum = Math.max(...veri.kar_alani);
+    
+    document.getElementById('ortalamaKar').textContent = Math.round(ortalama).toLocaleString('tr-TR');
+    document.getElementById('maxKar').textContent = Math.round(maksimum).toLocaleString('tr-TR');
+    
+    // Kış ortalaması (1,2,3. aylar)
+    const kisVeri = veri.tarihler.map((t,i) => ({ay: parseInt(t.split('-')[1]), v: veri.kar_alani[i]}))
+                                  .filter(({ay}) => [1,2,3].includes(ay));
+    const kisOrt = kisVeri.reduce((s,x) => s+x.v, 0) / (kisVeri.length || 1);
+    document.getElementById('kisOrtalama').textContent = Math.round(kisOrt).toLocaleString('tr-TR');
+    
+    // Trend
+    const n = veri.kar_alani.length;
+    const x = Array.from({length:n}, (_,i) => i);
+    const y = veri.kar_alani;
+    const xOrt = x.reduce((s,v) => s+v, 0) / n;
+    const yOrt = y.reduce((s,v) => s+v, 0) / n;
+    const egim = x.reduce((s,xi,i) => s + (xi-xOrt)*(y[i]-yOrt), 0) / 
+                 x.reduce((s,xi) => s + (xi-xOrt)**2, 0);
+    const yillikTrend = Math.round(egim * 12);
+    
+    const trendEl = document.getElementById('trendDeger');
+    trendEl.textContent = (yillikTrend > 0 ? '+' : '') + yillikTrend.toLocaleString('tr-TR') + ' km²';
+    trendEl.style.color = yillikTrend < 0 ? '#FF6B6B' : '#4ECDC4';
+}
+
+function trendGrafikCiz(veri) {
+    const ctx = document.getElementById('trendGrafik').getContext('2d');
+    if (trendChart) trendChart.destroy();
+    
+    // Trend çizgisi hesapla
+    const n = veri.kar_alani.length;
+    const x = Array.from({length:n}, (_,i) => i);
+    const y = veri.kar_alani;
+    const xOrt = x.reduce((s,v) => s+v, 0) / n;
+    const yOrt = y.reduce((s,v) => s+v, 0) / n;
+    const egim = x.reduce((s,xi,i) => s + (xi-xOrt)*(y[i]-yOrt), 0) / 
+                 x.reduce((s,xi) => s + (xi-xOrt)**2, 0);
+    const kesme = yOrt - egim * xOrt;
+    const trendVeri = x.map(xi => egim * xi + kesme);
+    
+    const grad = ctx.createLinearGradient(0, 0, 0, 380);
+    grad.addColorStop(0, 'rgba(0, 212, 255, 0.4)');
+    grad.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
+    
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: veri.tarihler,
+            datasets: [
+                {
+                    label: 'Kar Alanı', data: y,
+                    borderColor: '#00D4FF', backgroundColor: grad,
+                    borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.3, order: 2
+                },
+                {
+                    label: 'Trend', data: trendVeri,
+                    borderColor: '#FFD700', backgroundColor: 'transparent',
+                    borderWidth: 2.5, borderDash: [8,4], pointRadius: 0, fill: false, order: 1
+                }
+            ]
+        },
+        options: chartOptions('km²')
+    });
+    
+    // Trend değerlerini güncelle
+    const yillikEgim = Math.round(egim * 12);
+    document.getElementById('trend-egim').textContent = `${yillikEgim > 0 ? '+' : ''}${yillikEgim.toLocaleString('tr-TR')} km²/yıl`;
+    document.getElementById('trend-toplam').textContent = `${(yillikEgim * 11) > 0 ? '+' : ''}${(yillikEgim * 11).toLocaleString('tr-TR')} km²`;
+    document.getElementById('trend-yorum').textContent = yillikEgim < 0 ? 'Azalma ↓' : 'Artış ↑';
+    
+    // R²
+    const yTahmin = x.map(xi => egim * xi + kesme);
+    const ssRes = y.reduce((s,yi,i) => s + (yi - yTahmin[i])**2, 0);
+    const ssTot = y.reduce((s,yi) => s + (yi - yOrt)**2, 0);
+    const r2 = 1 - ssRes/ssTot;
+    document.getElementById('trend-r2').textContent = r2.toFixed(4);
+    document.getElementById('regrasyonDenklem').textContent = 
+        `KarAlanı = ${yillikEgim.toLocaleString('tr-TR')} × Yıl + ${Math.round(kesme).toLocaleString('tr-TR')}`;
+}
+
+function kisGrafikCiz(veri) {
+    if (!veri.yillik_ort) return;
+    const ctx = document.getElementById('kisGrafik').getContext('2d');
+    if (kisChart) kisChart.destroy();
+    
+    const kisVeri = {};
+    veri.tarihler.forEach((t, i) => {
+        const [yil, ay] = t.split('-').map(Number);
+        if ([1,2,3].includes(ay)) {
+            if (!kisVeri[yil]) kisVeri[yil] = [];
+            kisVeri[yil].push(veri.kar_alani[i]);
+        }
+    });
+    const yillar = Object.keys(kisVeri).map(Number);
+    const kisOrt = yillar.map(y => kisVeri[y].reduce((s,v)=>s+v,0)/kisVeri[y].length);
+    const ortalama = kisOrt.reduce((s,v)=>s+v,0)/kisOrt.length;
+    
+    kisChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: yillar,
+            datasets: [{
+                label: 'Kış Ort.',
+                data: kisOrt,
+                backgroundColor: kisOrt.map(v => v < ortalama ? 'rgba(255,107,107,0.7)' : 'rgba(78,205,196,0.7)'),
+                borderRadius: 5, borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: {display:false},
+                tooltip: { backgroundColor:'#1E2D3D', titleColor:'#00D4FF', bodyColor:'#ccc',
+                    callbacks: { label: ctx => `${Math.round(ctx.parsed.y).toLocaleString('tr-TR')} km²` }}},
+            scales: {
+                x: { ticks: {color:'#888', font:{size:10}}, grid: {display:false} },
+                y: { ticks: {color:'#888', callback: v=>(v/1000).toFixed(0)+'k'}, grid:{color:'rgba(255,255,255,0.05)'}}
+            }
+        }
+    });
+}
+
+function mevsimGrafikCiz(veri) {
+    const ayAdlari = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    const ctx = document.getElementById('mevsimGrafik').getContext('2d');
+    if (mevsimChart) mevsimChart.destroy();
+    
+    const ayVeri = Array(12).fill(0);
+    const ayAdet = Array(12).fill(0);
+    veri.tarihler.forEach((t, i) => {
+        const ay = parseInt(t.split('-')[1]) - 1;
+        ayVeri[ay] += veri.kar_alani[i];
+        ayAdet[ay]++;
+    });
+    const ayOrt = ayVeri.map((v,i) => ayAdet[i] > 0 ? v/ayAdet[i] : 0);
+    
+    mevsimChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ayAdlari,
+            datasets: [{
+                label: 'Aylık Ort. Kar (km²)',
+                data: ayOrt,
+                borderColor: '#00D4FF',
+                backgroundColor: 'rgba(0,212,255,0.15)',
+                pointBackgroundColor: '#00D4FF',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `${Math.round(ctx.parsed.r).toLocaleString('tr-TR')} km²`}}},
+            scales: {
+                r: {
+                    ticks: { color: '#888', callback: v=>(v/1000).toFixed(0)+'k', backdropColor:'transparent' },
+                    grid: { color:'rgba(255,255,255,0.1)' },
+                    pointLabels: { color:'#ccc', font:{size:11} },
+                    angleLines: { color:'rgba(255,255,255,0.1)' }
+                }
+            }
+        }
+    });
+}
+
+function trendAnalizYap(veri) { /* istatistikleriHesapla'dan çağrılıyor */ }
+
+function chartOptions(birim) {
+    return {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+            legend: { labels: { color: '#ccc' } },
+            tooltip: {
+                backgroundColor: '#1E2D3D', titleColor: '#00D4FF', bodyColor: '#ccc',
+                borderColor: '#00D4FF', borderWidth: 1,
+                callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('tr-TR')} ${birim}` }
+            }
+        },
+        scales: {
+            x: { ticks: { color:'#888', maxRotation:0, autoSkip:true, maxTicksLimit:14 },
+                 grid: { color:'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color:'#888', callback: v => (v/1000).toFixed(0)+'k' },
+                 grid: { color:'rgba(255,255,255,0.05)' } }
+        }
+    };
+}
+</script>
+{% endblock %}

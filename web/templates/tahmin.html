@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}KarİZ — Su Akışı Tahmin Paneli{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <div class="page-hero-content">
+            <div class="page-badge">🤖 Makine Öğrenmesi Modülü</div>
+            <h1 class="page-title">Su Akışı Tahmin Paneli</h1>
+            <p class="page-subtitle">
+                XGBoost ve Random Forest modelleriyle kar + meteoroloji verisinden
+                baraj su akışı tahmini
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="tahmin-layout">
+            <!-- Sol: Giriş Formu -->
+            <div class="tahmin-form-kart" id="tahminFormKart">
+                <h3 class="form-baslik">📝 Tahmin Parametreleri</h3>
+
+                <div class="form-group" id="fgHavza">
+                    <label class="form-label" for="havzaSec">🏞️ Baraj Havzası</label>
+                    <select class="form-select" id="havzaSec">
+                        {% for kod, bilgi in havzalar.items() %}
+                        <option value="{{ kod }}" {% if kod == 'Kizilirmak' %}selected{% endif %}>
+                            {{ bilgi.isim }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" id="fgYil">
+                        <label class="form-label" for="yilInput">📅 Yıl</label>
+                        <input type="number" class="form-input" id="yilInput"
+                               value="2025" min="2015" max="2030">
+                    </div>
+                    <div class="form-group" id="fgAy">
+                        <label class="form-label" for="aySec">🗓️ Ay</label>
+                        <select class="form-select" id="aySec">
+                            <option value="1">Ocak</option>
+                            <option value="2">Şubat</option>
+                            <option value="3" selected>Mart</option>
+                            <option value="4">Nisan</option>
+                            <option value="5">Mayıs</option>
+                            <option value="6">Haziran</option>
+                            <option value="7">Temmuz</option>
+                            <option value="8">Ağustos</option>
+                            <option value="9">Eylül</option>
+                            <option value="10">Ekim</option>
+                            <option value="11">Kasım</option>
+                            <option value="12">Aralık</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-divider">❄️ Kar Verileri</div>
+
+                <div class="form-group" id="fgKar">
+                    <label class="form-label" for="karAlani">
+                        Kar Alanı (km²)
+                        <span class="form-hint" id="karHint">Mevcut ay</span>
+                    </label>
+                    <input type="number" class="form-input" id="karAlani"
+                           value="85000" min="0" max="500000">
+                    <div class="slider-row">
+                        <span class="slider-min">0</span>
+                        <input type="range" class="form-range" id="karSlider"
+                               min="0" max="200000" value="85000" step="1000">
+                        <span class="slider-max">200k</span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" id="fgKarLag1">
+                        <label class="form-label" for="karLag1">
+                            Kar (km²) <small>1 ay önce</small>
+                        </label>
+                        <input type="number" class="form-input" id="karLag1"
+                               value="95000" min="0" max="500000">
+                    </div>
+                    <div class="form-group" id="fgKarLag2">
+                        <label class="form-label" for="karLag2">
+                            Kar (km²) <small>2 ay önce</small>
+                        </label>
+                        <input type="number" class="form-input" id="karLag2"
+                               value="110000" min="0" max="500000">
+                    </div>
+                </div>
+
+                <div class="form-divider">🌡️ Meteoroloji Verileri</div>
+
+                <div class="form-row">
+                    <div class="form-group" id="fgSicaklik">
+                        <label class="form-label" for="sicaklikInput">
+                            Sıcaklık (°C)
+                        </label>
+                        <input type="number" class="form-input" id="sicaklikInput"
+                               value="5.2" step="0.1" min="-30" max="45">
+                    </div>
+                    <div class="form-group" id="fgYagis">
+                        <label class="form-label" for="yagisInput">
+                            Yağış (mm)
+                        </label>
+                        <input type="number" class="form-input" id="yagisInput"
+                               value="65" min="0" max="500">
+                    </div>
+                </div>
+
+                <div class="form-group" id="fgNem">
+                    <label class="form-label" for="nemInput">💧 Bağıl Nem (%)</label>
+                    <input type="number" class="form-input" id="nemInput"
+                           value="72" min="0" max="100">
+                </div>
+
+                <div class="form-divider">🤖 Model Seçimi</div>
+                <div class="model-secim" id="modelSecim">
+                    <label class="radio-kart active" id="radioXgb">
+                        <input type="radio" name="model" value="xgboost" checked>
+                        <div class="radio-icon">⚡</div>
+                        <div class="radio-baslik">XGBoost</div>
+                        <div class="radio-desc">Gradient Boosting</div>
+                    </label>
+                    <label class="radio-kart" id="radioRf">
+                        <input type="radio" name="model" value="rf">
+                        <div class="radio-icon">🌲</div>
+                        <div class="radio-baslik">Random Forest</div>
+                        <div class="radio-desc">Ensemble Trees</div>
+                    </label>
+                </div>
+
+                <button class="btn btn-primary btn-full" id="tahminBtn" onclick="tahminYap()">
+                    🔮 Tahmin Yap
+                </button>
+            </div>
+
+            <!-- Sağ: Sonuç Paneli -->
+            <div class="tahmin-sonuc-panel">
+                <!-- Sonuç Kartı -->
+                <div class="sonuc-kart" id="sonucKart">
+                    <div class="sonuc-bekleniyor" id="sonucBekleniyor">
+                        <div class="sonuc-bekleniyor-icon">🔮</div>
+                        <p>Parametreleri girin ve tahmin yapın</p>
+                    </div>
+                    <div class="sonuc-gosterim hidden" id="sonucGosterim">
+                        <div class="sonuc-header" id="sonucHeader">
+                            <div class="sonuc-icon" id="sonucIcon">💧</div>
+                            <div>
+                                <div class="sonuc-baslik" id="sonucBaslik">Tahmin Sonucu</div>
+                                <div class="sonuc-model" id="sonucModelAdi">XGBoost</div>
+                            </div>
+                        </div>
+                        <div class="sonuc-deger-big">
+                            <span id="sonucDeger">—</span>
+                            <span class="sonuc-birim">m³/s</span>
+                        </div>
+                        <div class="sonuc-yorum" id="sonucYorum">—</div>
+                        <div class="sonuc-detay">
+                            <div class="sonuc-detay-item">
+                                <span class="detay-label">Aylık Hacim</span>
+                                <span class="detay-deger" id="aylikHacim">—</span>
+                            </div>
+                            <div class="sonuc-detay-item">
+                                <span class="detay-label">Havza</span>
+                                <span class="detay-deger" id="sonucHavza">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tahmin Geçmişi Grafiği -->
+                <div class="chart-card" id="tahminGecmisKart">
+                    <div class="chart-header">
+                        <div class="chart-title-group">
+                            <h3>📈 Geçmiş Tahminler</h3>
+                            <span class="chart-subtitle">Son tahmin oturumu</span>
+                        </div>
+                        <button class="btn-chip" onclick="gecmisiTemizle()" id="temizleBtn">Temizle</button>
+                    </div>
+                    <div class="chart-wrapper" style="height:220px">
+                        <canvas id="tahminGecmisGrafik"></canvas>
+                    </div>
+                </div>
+
+                <!-- Model Bilgi Kartı -->
+                <div class="model-bilgi-kart" id="modelBilgiKart">
+                    <h4>🧠 Model Hakkında</h4>
+                    <div class="model-bilgi-grid">
+                        <div class="bilgi-item">
+                            <span class="bilgi-label">Algoritma</span>
+                            <span class="bilgi-deger" id="bilgiAlgoritma">XGBoost</span>
+                        </div>
+                        <div class="bilgi-item">
+                            <span class="bilgi-label">Eğitim Verisi</span>
+                            <span class="bilgi-deger">2015–2024</span>
+                        </div>
+                        <div class="bilgi-item">
+                            <span class="bilgi-label">Öznitelik Sayısı</span>
+                            <span class="bilgi-deger">9</span>
+                        </div>
+                        <div class="bilgi-item">
+                            <span class="bilgi-label">Model R²</span>
+                            <span class="bilgi-deger" id="bilgiR2">—</span>
+                        </div>
+                        <div class="bilgi-item">
+                            <span class="bilgi-label">Hedef</span>
+                            <span class="bilgi-deger">> 0.70</span>
+                        </div>
+                        <div class="bilgi-item">
+                            <span class="bilgi-label">Birim</span>
+                            <span class="bilgi-deger">m³/s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let tahminGecmisi = [];
+let gecmisChart = null;
+
+// Slider - input senkronizasyonu
+document.getElementById('karSlider').addEventListener('input', function() {
+    document.getElementById('karAlani').value = this.value;
+});
+document.getElementById('karAlani').addEventListener('input', function() {
+    document.getElementById('karSlider').value = this.value;
+});
+
+// Model seçim kartları
+document.querySelectorAll('.radio-kart').forEach(kart => {
+    kart.addEventListener('click', function() {
+        document.querySelectorAll('.radio-kart').forEach(k => k.classList.remove('active'));
+        this.classList.add('active');
+        const model = this.querySelector('input').value;
+        document.getElementById('bilgiAlgoritma').textContent = 
+            model === 'xgboost' ? 'XGBoost' : 'Random Forest';
+    });
+});
+
+// Model R² değerini yükle
+fetch('/api/istatistikler')
+    .then(r => r.json())
+    .then(s => {
+        document.getElementById('bilgiR2').textContent = s.model_r2 || '—';
+    });
+
+function tahminYap() {
+    const btn = document.getElementById('tahminBtn');
+    btn.textContent = '⏳ Hesaplanıyor...';
+    btn.disabled = true;
+
+    const model = document.querySelector('input[name="model"]:checked').value;
+
+    const veri = {
+        havza: document.getElementById('havzaSec').value,
+        yil: parseInt(document.getElementById('yilInput').value),
+        ay: parseInt(document.getElementById('aySec').value),
+        kar_alani: parseFloat(document.getElementById('karAlani').value),
+        kar_alani_lag1: parseFloat(document.getElementById('karLag1').value),
+        kar_alani_lag2: parseFloat(document.getElementById('karLag2').value),
+        sicaklik: parseFloat(document.getElementById('sicaklikInput').value),
+        yagis: parseFloat(document.getElementById('yagisInput').value),
+        nem: parseFloat(document.getElementById('nemInput').value),
+        model: model
+    };
+
+    fetch('/api/tahmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(veri)
+    })
+    .then(r => r.json())
+    .then(sonuc => {
+        if (sonuc.hata) {
+            alert('Hata: ' + sonuc.hata);
+            return;
+        }
+        sonucGoster(sonuc, veri);
+        tahminGecmisineEkle(sonuc, veri);
+    })
+    .catch(e => alert('Bağlantı hatası: ' + e))
+    .finally(() => {
+        btn.textContent = '🔮 Tahmin Yap';
+        btn.disabled = false;
+    });
+}
+
+function sonucGoster(sonuc, girdi) {
+    document.getElementById('sonucBekleniyor').classList.add('hidden');
+    const gosterim = document.getElementById('sonucGosterim');
+    gosterim.classList.remove('hidden');
+
+    document.getElementById('sonucDeger').textContent = sonuc.tahmin_m3s.toLocaleString('tr-TR');
+    document.getElementById('sonucYorum').textContent = sonuc.yorum;
+    document.getElementById('sonucYorum').style.color = sonuc.renk;
+    document.getElementById('sonucModelAdi').textContent = sonuc.model;
+    document.getElementById('sonucHavza').textContent = sonuc.havza;
+    document.getElementById('sonucBaslik').textContent = 
+        `${['','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'][girdi.ay]} ${girdi.yil}`;
+
+    const aylikM3 = (sonuc.tahmin_m3s * 86400 * 30).toLocaleString('tr-TR', {maximumFractionDigits: 0});
+    document.getElementById('aylikHacim').textContent = `~${aylikM3} m³`;
+
+    // Kart rengi
+    document.getElementById('sonucKart').style.borderColor = sonuc.renk;
+}
+
+function tahminGecmisineEkle(sonuc, girdi) {
+    const ayAdlari = ['','Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    tahminGecmisi.push({
+        label: `${ayAdlari[girdi.ay]}/${String(girdi.yil).slice(2)}`,
+        deger: sonuc.tahmin_m3s
+    });
+
+    if (tahminGecmisi.length > 10) tahminGecmisi.shift();
+    gecmisGrafiginiCiz();
+}
+
+function gecmisGrafiginiCiz() {
+    const ctx = document.getElementById('tahminGecmisGrafik').getContext('2d');
+    if (gecmisChart) gecmisChart.destroy();
+
+    gecmisChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: tahminGecmisi.map(t => t.label),
+            datasets: [{
+                label: 'Tahmin (m³/s)',
+                data: tahminGecmisi.map(t => t.deger),
+                backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                borderColor: '#00D4FF',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false },
+                tooltip: { backgroundColor:'#1E2D3D', titleColor:'#00D4FF', bodyColor:'#ccc',
+                    callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString('tr-TR')} m³/s` }}},
+            scales: {
+                x: { ticks: {color:'#888'}, grid: {display:false} },
+                y: { ticks: {color:'#888'}, grid: {color:'rgba(255,255,255,0.05)'} }
+            }
+        }
+    });
+}
+
+function gecmisiTemizle() {
+    tahminGecmisi = [];
+    if (gecmisChart) { gecmisChart.destroy(); gecmisChart = null; }
+}
+</script>
+{% endblock %}

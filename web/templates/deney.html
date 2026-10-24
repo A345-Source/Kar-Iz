@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}KarİZ — Bilimsel Deney: Model A vs Model B{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="container">
+        <div class="page-hero-content">
+            <div class="page-badge">🔬 TÜBİTAK 2204-A Deney Protokolü</div>
+            <h1 class="page-title">Kar Örtüsü Bilgisinin Akış Tahminine Katkısı</h1>
+            <p class="page-subtitle">
+                Model A (Kar Verisi Olmayan) ile Model B (Sentinel-2 NDSI Kar Verisi Eklenen) 
+                Karşılaştırmalı Performans Analizi
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <!-- Bilimsel Araştırma Sorusu ve Hipotez Kutusu -->
+        <div class="info-card" style="margin-bottom: 2rem; border-left: 4px solid #00D4FF; background: #161B22;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color:#00D4FF; margin:0;">📌 Araştırma Sorusu & Ana Hipotez</h3>
+                <span class="tag" style="background:#238636; color:white;">Pilot Havza: Yukarı Fırat (Karasu Memba)</span>
+            </div>
+            <p style="margin-top: 1rem; color: #ddd; font-size: 1.05rem; line-height: 1.6;">
+                <strong>Araştırma Sorusu:</strong> "Dağlık bir havzada Sentinel-2 uydu görüntülerinden elde edilen kar örtüsü göstergeleri (NDSI SCA ve değişim), sıcaklık, yağış ve geçmiş akış verilerine dayalı modele eklendiğinde 7 günlük akarsu akışı tahmin hatasını ne ölçüde azaltır?"
+            </p>
+            <p style="color: #aaa; font-size: 0.95rem; margin: 0;">
+                <strong>Ana Hipotez:</strong> Kar birikim ve erime dinamiklerinin doğrudan uydu göstergesiyle modele beslenmesi, özellikle ilkbahar erime aylarında (Mart–Mayıs) Model A'ya kıyasla tahmin hatasını (MAE ve RMSE) anlamlı biçimde düşürür ve hidrolojik NSE skorunu artırır.
+            </p>
+        </div>
+
+        <!-- 100 Üzerinden Havza Fizibilite Özeti -->
+        <div class="chart-card" style="margin-bottom: 2rem;">
+            <div class="chart-header">
+                <div class="chart-title-group">
+                    <h3>📊 Havza Fizibilite Puanlama Tablosu (Aşama 1 Sonucu)</h3>
+                    <span class="chart-subtitle">Doğrulanabilir kriterlere dayalı nesnel seçim</span>
+                </div>
+            </div>
+            <div style="overflow-x: auto; padding: 1rem 0;">
+                <table class="trend-tablo" style="width:100%; border-collapse:collapse; text-align:left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #30363d; color:#888;">
+                            <th style="padding:10px;">Ölçüt (Ağırlık)</th>
+                            <th style="padding:10px; color:#00D4FF;">🏆 Yukarı Fırat (Seçilen)</th>
+                            <th style="padding:10px;">🥈 Yukarı Kızılırmak (Yedek)</th>
+                            <th style="padding:10px; color:#f85149;">❌ Çoruh Havzası (Elenen)</th>
+                        </tr>
+                    </thead>
+                    <tbody style="color:#ccc;">
+                        <tr style="border-bottom: 1px solid #21262d;">
+                            <td style="padding:10px;">Akış Verisi Erişilebilirliği (%30)</td>
+                            <td style="padding:10px;"><strong>21 / 30</strong> (DSİ E21A, GRDC)</td>
+                            <td style="padding:10px;">22 / 30 (D15A / Söğütlühan)</td>
+                            <td style="padding:10px; color:#f85149;">14 / 30 (Baraj kayıtlarına bağımlı)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #21262d;">
+                            <td style="padding:10px;">Kar Örtüsü Uygunluğu (%25)</td>
+                            <td style="padding:10px;"><strong>24 / 25</strong> (%65-70 erime payı)</td>
+                            <td style="padding:10px;">17 / 25 (Karma yağmur-kar)</td>
+                            <td style="padding:10px;">23 / 25 (3900m zirveler)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #21262d;">
+                            <td style="padding:10px;">Uydu & Meteoroloji Durumu (%20)</td>
+                            <td style="padding:10px;"><strong>14 / 20</strong> (ERA5-Land tam)</td>
+                            <td style="padding:10px;">16 / 20 (Açık hava daha fazla)</td>
+                            <td style="padding:10px; color:#f85149;">10 / 20 (%80-90 kış bulutluluğu)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #21262d;">
+                            <td style="padding:10px;">Baraj Müdahalesi Yönetilebilirliği (%15)</td>
+                            <td style="padding:10px;"><strong>10 / 15</strong> (Memba alt havza izole)</td>
+                            <td style="padding:10px;">11 / 15 (Yamula öncesi uygun)</td>
+                            <td style="padding:10px; color:#f85149;">4 / 15 (10 mega baraj kaskadı)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #21262d;">
+                            <td style="padding:10px;">Uygulanabilirlik & Özgünlük (%10)</td>
+                            <td style="padding:10px;"><strong>9 / 10</strong> (Altın standart)</td>
+                            <td style="padding:10px;">8 / 10 (Literatür fırsatı)</td>
+                            <td style="padding:10px;">5 / 10 (Sarp topoğrafya riski)</td>
+                        </tr>
+                        <tr style="font-weight:bold; background:#0d1117;">
+                            <td style="padding:12px;">TOPLAM PUAN (%100)</td>
+                            <td style="padding:12px; color:#00D4FF; font-size:1.15rem;">78 / 100</td>
+                            <td style="padding:12px; font-size:1.15rem;">74 / 100</td>
+                            <td style="padding:12px; color:#f85149; font-size:1.15rem;">56 / 100</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Model Performans Kartları (Metrikler) -->
+        <div class="analiz-stats-row" id="deneyMetrikKartlari">
+            <div class="analiz-stat-kart">
+                <div class="analiz-stat-icon">⚖️</div>
+                <div class="analiz-stat-val" id="metrikMaeA">—</div>
+                <div class="analiz-stat-label">Model A MAE (Kar Yok)</div>
+            </div>
+            <div class="analiz-stat-kart" style="border-color:#00D4FF;">
+                <div class="analiz-stat-icon">❄️</div>
+                <div class="analiz-stat-val" id="metrikMaeB" style="color:#00D4FF;">—</div>
+                <div class="analiz-stat-label">Model B MAE (Kar Var)</div>
+            </div>
+            <div class="analiz-stat-kart" style="border-color:#238636;">
+                <div class="analiz-stat-icon">📈</div>
+                <div class="analiz-stat-val" id="metrikNseB" style="color:#238636;">—</div>
+                <div class="analiz-stat-label">Model B NSE (Verimlilik)</div>
+            </div>
+            <div class="analiz-stat-kart" style="border-color:#FFD700;">
+                <div class="analiz-stat-icon">🌸</div>
+                <div class="analiz-stat-val" id="metrikBaharIyilesme" style="color:#FFD700;">—</div>
+                <div class="analiz-stat-label">İlkbahar Erime İyileşmesi</div>
+            </div>
+        </div>
+
+        <!-- Karşılaştırmalı Zaman Serisi Grafiği -->
+        <div class="chart-card" style="margin-top:2rem;">
+            <div class="chart-header">
+                <div class="chart-title-group">
+                    <h3>📈 7 Günlük Akış Tahmini: Gözlem vs Model A vs Model B</h3>
+                    <span class="chart-subtitle">Bağımsız Test Dönemi (2023–2024 Zaman Serisi Eşlemesi)</span>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height:380px">
+                <canvas id="deneyZamanSerisiGrafik"></canvas>
+            </div>
+        </div>
+
+        <!-- İki Kolonlu Bilimsel Analiz Paneli -->
+        <div class="two-col-charts" style="margin-top:2rem;">
+            <!-- Model Girdi Değişkenleri Tablosu -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3>📋 Model Değişken Yapısı (Veri Sızıntısı Yok)</h3>
+                        <span class="chart-subtitle">Yalnızca tahmin anında bilinen değişkenler</span>
+                    </div>
+                </div>
+                <table class="trend-tablo" style="width:100%; margin-top:1rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #333; color:#888;">
+                            <th>Değişken Grubu</th>
+                            <th>Model A (Kar Verisiz)</th>
+                            <th>Model B (Kar Verili)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Geçmiş Akışlar</td>
+                            <td>Q(t), Q(t-1)</td>
+                            <td>Q(t), Q(t-1)</td>
+                        </tr>
+                        <tr>
+                            <td>Meteoroloji (Sıcaklık)</td>
+                            <td>T(t), T_ort(7g)</td>
+                            <td>T(t), T_ort(7g)</td>
+                        </tr>
+                        <tr>
+                            <td>Meteoroloji (Yağış)</td>
+                            <td>P(t), P_top(7g)</td>
+                            <td>P(t), P_top(7g)</td>
+                        </tr>
+                        <tr style="background:rgba(0,212,255,0.1); font-weight:bold; color:#00D4FF;">
+                            <td>Sentinel-2 NDSI Karı</td>
+                            <td>❌ Yok</td>
+                            <td>✅ SCA(t) (Alan km²)</td>
+                        </tr>
+                        <tr style="background:rgba(0,212,255,0.1); font-weight:bold; color:#00D4FF;">
+                            <td>Kar Dinamiği</td>
+                            <td>❌ Yok</td>
+                            <td>✅ ΔSCA (7g Değişim)</td>
+                        </tr>
+                        <tr style="background:rgba(0,212,255,0.1); font-weight:bold; color:#00D4FF;">
+                            <td>Termal Erime Etkileşimi</td>
+                            <td>❌ Yok</td>
+                            <td>✅ SCA × max(0, T)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bilimsel Dürüstlük ve Sınırlılıklar Beyanı -->
+            <div class="chart-card" style="border-left:4px solid #f85149;">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <h3 style="color:#f85149;">⚠️ Bilimsel Dürüstlük ve Sınırlılıklar Beyanı</h3>
+                        <span class="chart-subtitle">TÜBİTAK 2204-A Etik İlkeleri Gereğince</span>
+                    </div>
+                </div>
+                <ul style="color:#ccc; font-size:0.92rem; line-height:1.7; padding-left:1.2rem; margin-top:1rem;">
+                    <li><strong>NDSI bir hacim ölçüsü değildir:</strong> NDSI indeksi yalnızca pikselin optik olarak karla kaplı olup olmadığını tespit eder; kar derinliğini veya Kar Su Eşdeğerini (SWE) doğrudan ölçmez.</li>
+                    <li><strong>Optik Bulut Sınırlılığı:</strong> Doğu Anadolu'da kış fırtınaları sırasında pikseller bulutla örtülebilmektedir. Çalışmada bulut maskeleme uygulanmış, eksik görüntüler sıfır kar sayılmamış ve kalite bayrağı (Quality Flag) üretilmiştir.</li>
+                    <li><strong>Düşük Akış vs Kuraklık:</strong> Tahmin edilen akışın düşük olması hidrolojik akış riskini gösterir; meteorolojik veya tarımsal kuraklıkla doğrudan eşdeğer tutulamaz.</li>
+                    <li><strong>Doğrulama Durumu:</strong> Prototip arayüzdeki veriler, DSİ yıllıklarının ve ERA5-Land istatistiklerinin fiziksel tabanlı kalibrasyonu ile üretilen araştırma simülasyonlarıdır.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/deney-sonuclari')
+        .then(r => r.json())
+        .then(veri => {
+            if (veri.metrikler && veri.metrikler.model_A_kar_yok) {
+                const mA = veri.metrikler.model_A_kar_yok;
+                const mB = veri.metrikler.model_B_kar_var;
+                
+                document.getElementById('metrikMaeA').textContent = mA.MAE + ' m³/s';
+                document.getElementById('metrikMaeB').textContent = mB.MAE + ' m³/s';
+                document.getElementById('metrikNseB').textContent = mB.NSE;
+                document.getElementById('metrikBaharIyilesme').textContent = '%' + veri.metrikler.iyilesme_yuzdesi_bahar;
+            }
+            
+            if (veri.zaman_serisi && veri.zaman_serisi.length > 0) {
+                deneyGrafigiCiz(veri.zaman_serisi);
+            }
+        })
+        .catch(e => console.error('Deney sonuçları yüklenemedi:', e));
+});
+
+let deneyChart = null;
+function deneyGrafigiCiz(zamanSerisi) {
+    const ctx = document.getElementById('deneyZamanSerisiGrafik').getContext('2d');
+    if (deneyChart) deneyChart.destroy();
+    
+    const tarihler = zamanSerisi.map(d => d.tarih);
+    const gozlem = zamanSerisi.map(d => d.gozlem);
+    const modelA = zamanSerisi.map(d => d.model_A_kar_yok);
+    const modelB = zamanSerisi.map(d => d.model_B_kar_var);
+    
+    deneyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: tarihler,
+            datasets: [
+                {
+                    label: 'Gerçek Akış (Gözlem)',
+                    data: gozlem,
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                },
+                {
+                    label: 'Model A (Kar Verisiz)',
+                    data: modelA,
+                    borderColor: '#f85149',
+                    borderWidth: 1.8,
+                    borderDash: [5, 4],
+                    pointRadius: 0,
+                    tension: 0.2
+                },
+                {
+                    label: 'Model B (Sentinel-2 Kar Verili)',
+                    data: modelB,
+                    borderColor: '#00D4FF',
+                    borderWidth: 2.2,
+                    pointRadius: 0,
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { labels: { color: '#ccc' } },
+                tooltip: {
+                    backgroundColor: '#1E2D3D',
+                    titleColor: '#00D4FF',
+                    bodyColor: '#ccc',
+                    borderColor: '#00D4FF',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} m³/s`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#888', autoSkip: true, maxTicksLimit: 12 },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                y: {
+                    title: { display: true, text: 'Akış (m³/s)', color: '#888' },
+                    ticks: { color: '#888' },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

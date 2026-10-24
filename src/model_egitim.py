@@ -177,16 +177,18 @@ def random_forest_egit(X_egitim, y_egitim):
 def capraz_dogrulama(model, X, y, model_adi, n_fold=5):
     """
     K-Fold çapraz doğrulama yapar.
-    
-    Neden çapraz doğrulama?
-        Tek bir train/test bölmesi şansa bağlı olabilir.
-        K-Fold: Veriyi K parçaya böl, sırayla her parçayı test olarak kullan.
-        K sonucun ortalaması daha güvenilir bir tahmin verir.
     """
     print(f"\n  🔄 {model_adi} — {n_fold}-Fold Çapraz Doğrulama...")
     
+    # XGBoost'un early stopping parametresi cross_val_score'da eval_set olmadan hata verir
+    # Bu yüzden CV için early_stopping_rounds olmadan temiz bir model kopyası kullanıyoruz
+    if isinstance(model, xgb.XGBRegressor):
+        cv_model = xgb.XGBRegressor(**XGBOOST_PARAMS, verbosity=0)
+    else:
+        cv_model = model
+
     kf = KFold(n_splits=n_fold, shuffle=True, random_state=42)
-    skorlar = cross_val_score(model, X, y, cv=kf, scoring='r2')
+    skorlar = cross_val_score(cv_model, X, y, cv=kf, scoring='r2')
     
     print(f"  R² Skorları: {[f'{s:.3f}' for s in skorlar]}")
     print(f"  Ortalama R²: {skorlar.mean():.4f} ± {skorlar.std():.4f}")

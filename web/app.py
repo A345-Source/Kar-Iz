@@ -13,12 +13,23 @@
 
 import os
 import sys
+
+# Windows terminal UTF-8 desteği
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 import json
 import numpy as np
 import pandas as pd
 import joblib
 from flask import Flask, render_template, request, jsonify, send_from_directory
-from flask_cors import CORS
+try:
+    from flask_cors import CORS
+    has_cors = True
+except ImportError:
+    has_cors = False
 
 # Proje kökünü yola ekle
 proje_koku = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -41,7 +52,8 @@ app = Flask(__name__,
 app.secret_key = FLASK_GIZLI_ANAHTAR
 
 # CORS: Farklı portlardan gelen API isteklerine izin ver
-CORS(app)
+if has_cors:
+    CORS(app)
 
 # =============================================================================
 # Global Değişkenler (uygulama başlatılınca yüklenir)
@@ -135,10 +147,28 @@ def uyari_sayfasi():
     return render_template('uyari.html', havzalar=HAVZALAR)
 
 
-@app.route('/analiz')
-def analiz_sayfasi():
-    """Zaman serisi analiz sayfası."""
-    return render_template('analiz.html', havzalar=HAVZALAR)
+@app.route('/bilimsel-deney')
+def bilimsel_deney_sayfasi():
+    """TÜBİTAK 2204-A: Model A (Kar Yok) vs Model B (Kar Var) Karşılaştırması."""
+    return render_template('deney.html', havzalar=HAVZALAR)
+
+
+@app.route('/api/deney-sonuclari')
+def api_deney_sonuclari():
+    """Bilimsel deney metrikleri ve test tahmin zaman serisi."""
+    json_yol = os.path.join(RAPOR_DIZINI, 'bilimsel_deney_sonuclari.json')
+    csv_yol = os.path.join(proje_koku, 'data', 'processed', 'test_tahmin_karsilastirma.csv')
+    
+    sonuc = {'metrikler': {}, 'zaman_serisi': []}
+    if os.path.exists(json_yol):
+        with open(json_yol, 'r', encoding='utf-8') as f:
+            sonuc['metrikler'] = json.load(f)
+            
+    if os.path.exists(csv_yol):
+        df_test = pd.read_csv(csv_yol, encoding='utf-8-sig')
+        sonuc['zaman_serisi'] = df_test.to_dict(orient='records')
+        
+    return jsonify(sonuc)
 
 
 # =============================================================================

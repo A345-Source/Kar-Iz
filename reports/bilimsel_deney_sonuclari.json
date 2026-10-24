@@ -1,0 +1,24 @@
+{
+  "baseline": {
+    "MAE": 11.49,
+    "RMSE": 15.06,
+    "R2": 0.098,
+    "NSE": 0.098
+  },
+  "model_A_kar_yok": {
+    "MAE": 11.04,
+    "RMSE": 14.89,
+    "R2": 0.118,
+    "NSE": 0.118
+  },
+  "model_B_kar_var": {
+    "MAE": 10.51,
+    "RMSE": 13.39,
+    "R2": 0.287,
+    "NSE": 0.287
+  },
+  "iyilesme_yuzdesi_genel": 4.71,
+  "iyilesme_yuzdesi_bahar": 7.86,
+  "iyilesme_yuzdesi_kis": 16.62,
+  "test_ornek_sayisi": 104
+}

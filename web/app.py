@@ -147,6 +147,12 @@ def uyari_sayfasi():
     return render_template('uyari.html', havzalar=HAVZALAR)
 
 
+@app.route('/analiz')
+def analiz_sayfasi():
+    """Zaman serisi analiz sayfası."""
+    return render_template('analiz.html', havzalar=HAVZALAR)
+
+
 @app.route('/bilimsel-deney')
 def bilimsel_deney_sayfasi():
     """TÜBİTAK 2204-A: Model A (Kar Yok) vs Model B (Kar Var) Karşılaştırması."""
@@ -156,10 +162,13 @@ def bilimsel_deney_sayfasi():
 @app.route('/api/deney-sonuclari')
 def api_deney_sonuclari():
     """Bilimsel deney metrikleri ve test tahmin zaman serisi."""
-    json_yol = os.path.join(RAPOR_DIZINI, 'bilimsel_deney_sonuclari.json')
+    json_yol = os.path.join(proje_koku, 'reports', 'bilimsel_deney_sonuclari.json')
+    if not os.path.exists(json_yol):
+        json_yol = os.path.join(RAPOR_DIZINI, 'bilimsel_deney_sonuclari.json')
     csv_yol = os.path.join(proje_koku, 'data', 'processed', 'test_tahmin_karsilastirma.csv')
     
     sonuc = {'metrikler': {}, 'zaman_serisi': []}
+    
     if os.path.exists(json_yol):
         with open(json_yol, 'r', encoding='utf-8') as f:
             sonuc['metrikler'] = json.load(f)
